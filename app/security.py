@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone # Agregado timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext # Importación para hashing de contraseñas
+from passlib.context import CryptContext
 
 from . import models, schemas
 from .database import SessionLocal
@@ -69,4 +69,13 @@ def get_current_user_by_token(token: str = Depends(verify_token), db: Session = 
     user = crud.get_user_by_email(db, email=token)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
+
+## Nueva función para verificar credenciales de usuario
+def authenticate_user(email: str, password: str, db: Session):
+    user = crud.get_user_by_email(db, email=email)
+    if not user:
+        return False
+    if not verify_password(password, user.password):
+        return False
     return user

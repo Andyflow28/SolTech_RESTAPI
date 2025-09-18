@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timedelta, timezone # Added timezone
+from datetime import datetime, timedelta, timezone
+from pydantic import BaseModel
 
 from . import models, schemas, crud
 from .database import SessionLocal, engine
 from .config import settings
-from .security import get_api_key, create_access_token, verify_token
+from .security import get_api_key, create_access_token, verify_token, verify_password
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -35,6 +36,11 @@ def get_db():
     finally:
         db.close()
 
+# Esquema para login de usuarios
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
 ## User endpoints
 @app.post("/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -60,6 +66,38 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
             detail="User not found"
         )
     return db_user
+
+## Nuevo endpoint para autenticación de usuarios
+@app.post("/auth/login")
+def user_login(credentials: UserLogin, db: Session = Depends(get_db)):
+    # Buscar usuario por email
+    user = crud.get_user_by_email(db, email=credentials.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas"
+        )
+    
+    # Verificar contraseña
+    if not verify_password(credentials.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas"
+        )
+    
+    # Crear token JWT
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user_id": user.user_id,
+        "email": user.email,
+        "full_name": user.full_name
+    }
 
 ## UserStation endpoints
 @app.post("/user-stations", response_model=schemas.UserStation, status_code=status.HTTP_201_CREATED)

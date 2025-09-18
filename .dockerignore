@@ -1,0 +1,54 @@
+# Entornos virtuales de Python
+venv/
+env/
+.venv/
+
+# Archivos de cache de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de entorno (no los queremos en producción)
+.env
+.env.local
+.env.production
+
+# Archivos de IDE y editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+logs/
+
+# Archivos de cobertura y pruebas
+.coverage
+htmlcov/
+.pytest_cache/
+tests/
+
+# Archivos de documentación
+docs/
+_build/
+
+# Archivos de Git
+.git/
+.gitignore
+
+# Archivos de Docker (opcionales, dependiendo de tu configuración)
+Dockerfile
+.dockerignore
+
+# Archivos de README (opcional)
+README.md
+LICENSE
+
+# Archivos de configuración específicos del proyecto (ajusta según necesites)
+config.local.py

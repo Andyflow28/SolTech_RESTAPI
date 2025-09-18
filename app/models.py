@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-from database import Base  # suponiendo que tienes un archivo database.py con la Base declarada
+from .database import Base  # suponiendo que tienes un archivo database.py con la Base declarada
 
 
 class User(Base):

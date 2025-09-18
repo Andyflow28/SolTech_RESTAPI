@@ -9,7 +9,7 @@ from passlib.context import CryptContext # Importación para hashing de contrase
 from . import models, schemas
 from .database import SessionLocal
 from .config import settings
-from . import crud
+from . import crud  
 
 # Contexto para el hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

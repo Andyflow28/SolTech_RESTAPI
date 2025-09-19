@@ -10,7 +10,8 @@ from .database import SessionLocal, engine, get_db
 from .config import settings
 from .security import create_access_token, verify_password, verify_api_key, get_current_user, authenticate_user
 
-models.Base.metadata.create_all(bind=engine)
+from .database import recreate_tables
+recreate_tables()
 
 app = FastAPI(
     title="ESP32 Sensor API",

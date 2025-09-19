@@ -21,10 +21,8 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Dependency para obtener la sesión de base de datos
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Función para eliminar y recrear tablas (solo para desarrollo)
+def recreate_tables():
+    from . import models
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)

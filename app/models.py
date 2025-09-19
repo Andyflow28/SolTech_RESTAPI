@@ -5,7 +5,7 @@ from .database import Base
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "users"  # Cambiado de "user" a "users" (plural)
     
     user_id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
@@ -19,13 +19,13 @@ class User(Base):
 
 
 class UserStation(Base):
-    __tablename__ = "user_station"
+    __tablename__ = "user_stations"  # Cambiado a plural para consistencia
     
-    station_id = Column(String, primary_key=True, index=True)  # Cambiado a String para hexadecimal
+    station_id = Column(String, primary_key=True, index=True)  # Ahora es string
     location = Column(String, nullable=False)
     
-    # Foreign key con User
-    user_id = Column(Integer, ForeignKey("user.user_id"), nullable=False)
+    # Foreign key con User (actualizado para referenciar la tabla correcta)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)  # Cambiado a "users.user_id"
     user = relationship("User", back_populates="stations")
     
     # Relación con StationData
@@ -53,8 +53,8 @@ class StationData(Base):
     voltage_mq135 = Column(Float, nullable=True)
     digital_mq135 = Column(Boolean, nullable=True)
     
-    # Foreign key con UserStation (cambiado a String)
-    station_id = Column(String, ForeignKey("user_station.station_id"), nullable=False)
+    # Foreign key con UserStation (actualizado para referenciar la tabla correcta)
+    station_id = Column(String, ForeignKey("user_stations.station_id"), nullable=False)  # Cambiado a "user_stations.station_id"
     station = relationship("UserStation", back_populates="station_data")
     
     # Timestamp

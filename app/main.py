@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -6,12 +7,16 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 
 from . import models, schemas, crud
-from .database import SessionLocal, engine, get_db
+from .database import SessionLocal, engine, get_db, recreate_tables
 from .config import settings
 from .security import create_access_token, verify_password, verify_api_key
 
-# Crear tablas solo si no existen
-models.Base.metadata.create_all(bind=engine)
+# Verificar si debemos recrear las tablas (solo en desarrollo)
+if os.getenv("RECREATE_TABLES", "False").lower() == "true":
+    recreate_tables()
+else:
+    # Solo crear tablas si no existen
+    models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="ESP32 Sensor API",
@@ -28,6 +33,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Esquema para login de usuarios
 class UserLogin(BaseModel):
@@ -142,7 +155,7 @@ def read_user_station(station_id: str, db: Session = Depends(get_db)):
 def create_station_data(
     payload: schemas.StationDataCreate, 
     db: Session = Depends(get_db),
-    authorization: str = Depends(verify_api_key)  # Verificación de API Key
+    authorization: str = Depends(verify_api_key)
 ):
     try:
         db_station = crud.get_user_station(db, station_id=payload.station_id)
@@ -210,7 +223,6 @@ def create_token(device_id: str):
 ## Health check endpoint
 @app.get("/health")
 def health_check():
-    # Corrected to use a timezone-aware datetime object
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc)}
 
 ## Endpoint simple para testing del ESP32

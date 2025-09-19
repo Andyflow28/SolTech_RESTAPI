@@ -3,6 +3,7 @@ from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+    API_KEY: str  # ← Agregar esta línea
     SECRET_KEY: str
     CORS_ORIGINS: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

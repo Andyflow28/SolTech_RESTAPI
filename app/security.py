@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Header
 from passlib.context import CryptContext
 
 from .config import settings
@@ -45,3 +45,20 @@ def verify_token(token: str):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
+
+# Función para verificar el token en el header Authorization
+def verify_auth_header(authorization: str = Header(...)):
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing",
+        )
+    
+    # El ESP32 envía solo el token, sin "Bearer"
+    if authorization != settings.API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API Key",
+        )
+    
+    return authorization

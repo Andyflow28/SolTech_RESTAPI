@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, status
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from . import models, schemas, crud
 from .database import SessionLocal, engine
 from .config import settings
-from .security import create_access_token, verify_password
+from .security import create_access_token, verify_password, verify_api_key
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -148,7 +148,8 @@ def read_user_station(station_id: str, db: Session = Depends(get_db)):
 @app.post("/station-data", response_model=schemas.StationData, status_code=status.HTTP_201_CREATED)
 def create_station_data(
     payload: schemas.StationDataCreate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    authorization: str = Depends(verify_api_key)  # Verificación de API Key
 ):
     try:
         db_station = crud.get_user_station(db, station_id=payload.station_id)
@@ -218,10 +219,34 @@ def create_token(device_id: str):
 def health_check():
     # Corrected to use a timezone-aware datetime object
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc)}
+
+## Endpoint simple para testing del ESP32
+@app.post("/")
+def root_endpoint(
+    payload: schemas.StationDataCreate, 
+    db: Session = Depends(get_db),
+    authorization: str = Depends(verify_api_key)
+):
+    """Endpoint alternativo para compatibilidad con el ESP32"""
+    try:
+        db_station = crud.get_user_station(db, station_id=payload.station_id)
+        if not db_station:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Station with ID {payload.station_id} not found"
+            )
+            
+        obj = crud.create_station_data(db, payload)
+        return obj
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error storing station data: {str(e)}"
+        )
     
 # Render Section
 if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port) 
+    uvicorn.run(app, host="0.0.0.0", port=port)

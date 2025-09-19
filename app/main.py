@@ -112,7 +112,15 @@ def create_user_station(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    # The crud function call is updated to reflect the new schemas
+    
+    # Check if station_id already exists
+    db_station = crud.get_user_station(db, station_id=user_station.station_id)
+    if db_station:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Station ID already exists"
+        )
+    
     return crud.create_user_station(db=db, user_station=user_station)
 
 @app.get("/user-stations", response_model=List[schemas.UserStation])
@@ -127,41 +135,7 @@ def read_user_stations(
     return crud.get_all_user_stations(db, skip=skip, limit=limit)
 
 @app.get("/user-stations/{station_id}", response_model=schemas.UserStation)
-def read_user_station(station_id: int, db: Session = Depends(get_db)):
-    db_station = crud.get_user_station(db, station_id=station_id)
-    if db_station is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Station not found"
-        )
-    return db_station
-
-## StationData endpoints
-@app.post("/user-stations", response_model=schemas.UserStation, status_code=status.HTTP_201_CREATED)
-def create_user_station(
-    user_station: schemas.UserStationCreate, 
-    db: Session = Depends(get_db)
-):
-    # Check if user exists
-    db_user = crud.get_user(db, user_id=user_station.user_id)
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Check if station_id already exists
-    db_station = crud.get_user_station(db, station_id=user_station.station_id)
-    if db_station:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Station ID already exists"
-        )
-    
-    return crud.create_user_station(db=db, user_station=user_station)
-
-@app.get("/user-stations/{station_id}", response_model=schemas.UserStation)
-def read_user_station(station_id: str, db: Session = Depends(get_db)):  # Cambiado a str
+def read_user_station(station_id: str, db: Session = Depends(get_db)):
     db_station = crud.get_user_station(db, station_id=station_id)
     if db_station is None:
         raise HTTPException(
@@ -196,7 +170,7 @@ def create_station_data(
 def read_station_data(
     skip: int = 0,
     limit: int = 100,
-    station_id: Optional[str] = Query(None, description="Filter by station ID (hexadecimal)"),  # Cambiado a str
+    station_id: Optional[str] = Query(None, description="Filter by station ID (hexadecimal)"),
     start_time: Optional[datetime] = Query(None, description="Start time filter"),
     end_time: Optional[datetime] = Query(None, description="End time filter"),
     db: Session = Depends(get_db)
@@ -206,11 +180,29 @@ def read_station_data(
 
 @app.get("/station-data/latest", response_model=List[schemas.StationData])
 def read_latest_station_data(
-    station_id: Optional[str] = Query(None, description="Specific station ID (hexadecimal)"),  # Cambiado a str
+    station_id: Optional[str] = Query(None, description="Specific station ID (hexadecimal)"),
     limit: int = Query(10, ge=1, le=1000, description="Number of records to return"),
     db: Session = Depends(get_db)
 ):
     return crud.get_latest_station_data(db, station_id=station_id, limit=limit)
+
+@app.get("/station-data/{data_id}", response_model=schemas.StationData)
+def read_station_data_id(data_id: int, db: Session = Depends(get_db)):
+    obj = crud.get_station_data_by_id(db, data_id)
+    if not obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Record with ID {data_id} not found"
+        )
+    return obj
+
+@app.delete("/station-data/cleanup")
+def cleanup_old_station_data(
+    days: int = Query(30, ge=1, description="Delete data older than this many days"),
+    db: Session = Depends(get_db)
+):
+    deleted_count = crud.delete_old_station_data(db, days)
+    return {"detail": f"Deleted {deleted_count} old records"}
 
 ## Authentication endpoints
 @app.post("/token")

@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import HTTPException, status, Header
+from fastapi import HTTPException, status, Header, Depends
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
 from .config import settings
+from .database import get_db
+from . import crud
 
 # Contexto para el hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -46,19 +49,60 @@ def verify_token(token: str):
             detail="Could not validate credentials",
         )
 
-# Función para verificar el token en el header Authorization
-def verify_auth_header(authorization: str = Header(...)):
+# Función para verificar API Key desde header Authorization
+def verify_api_key(authorization: str = Header(None)):
+    """
+    Verifica la API key enviada en el header Authorization.
+    El ESP32 envía el token directamente sin el prefijo "Bearer".
+    """
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing",
+            detail="Authorization header missing"
         )
     
-    # El ESP32 envía solo el token, sin "Bearer"
+    # Verificar si la API key coincide
     if authorization != settings.API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API Key",
+            detail="Invalid API Key"
         )
     
     return authorization
+
+# Función de Dependencia para obtener el usuario actual
+def get_current_user(token: str = Depends(verify_token), db: Session = Depends(get_db)):
+    """
+    Obtiene el usuario actual basado en el token JWT.
+    Requiere que el token tenga el email del usuario en 'sub'
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+            )
+        
+        user = crud.get_user_by_email(db, email=email)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        return user
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+
+## Función para verificar credenciales de usuario
+def authenticate_user(email: str, password: str, db: Session):
+    """
+    Función para autenticar usuario con email y contraseña.
+    """
+    user = crud.get_user_by_email(db, email=email)
+    if not user:
+        return False
+    if not verify_password(password, user.password):
+        return False
+    return user

@@ -26,3 +26,10 @@ def recreate_tables():
     from . import models
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

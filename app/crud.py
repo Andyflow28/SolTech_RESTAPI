@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
-from .security import hash_password # You need to create this function in security.py
+from .security import hash_password
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 # User CRUD operations
 def create_user(db: Session, user: schemas.UserCreate):
-    # Hashing the password before saving it
     hashed_password = hash_password(user.password) 
     
     db_user = models.User(
@@ -14,7 +13,7 @@ def create_user(db: Session, user: schemas.UserCreate):
         username=user.username,
         password=hashed_password,
         full_name=user.full_name,
-        has_station=False  # Initialize the new field
+        has_station=False
     )
     db.add(db_user) 
     db.commit()
@@ -32,8 +31,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 # UserStation CRUD operations
 def create_user_station(db: Session, user_station: schemas.UserStationCreate):
-    # UserStation no longer needs user details, only location and user_id
     db_user_station = models.UserStation(
+        station_id=user_station.station_id,  # Ahora es string
         location=user_station.location,
         user_id=user_station.user_id
     )
@@ -48,7 +47,7 @@ def create_user_station(db: Session, user_station: schemas.UserStationCreate):
     db.refresh(db_user_station)
     return db_user_station
 
-def get_user_station(db: Session, station_id: int):
+def get_user_station(db: Session, station_id: str):  # Cambiado a str
     return db.query(models.UserStation).filter(models.UserStation.station_id == station_id).first()
 
 def get_user_stations_by_user(db: Session, user_id: int, skip: int = 0, limit: int = 100):
@@ -59,13 +58,18 @@ def get_user_stations_by_user(db: Session, user_id: int, skip: int = 0, limit: i
 def get_all_user_stations(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.UserStation).offset(skip).limit(limit).all()
 
-# StationData CRUD operations (no changes needed)
+# StationData CRUD operations (updated for new sensors)
 def create_station_data(db: Session, data: schemas.StationDataCreate):
     db_obj = models.StationData(
-        temperature=data.temperature,
-        pressure=data.pressure,
-        humidity=data.humidity,
-        station_id=data.station_id,
+        temperature_aht20=data.temperature_aht20,
+        humidity_aht20=data.humidity_aht20,
+        temperature_bmp280=data.temperature_bmp280,
+        pressure_bmp280=data.pressure_bmp280,
+        voltage_mq2=data.voltage_mq2,
+        digital_mq2=data.digital_mq2,
+        voltage_mq135=data.voltage_mq135,
+        digital_mq135=data.digital_mq135,
+        station_id=data.station_id,  # Ahora es string
     )
     db.add(db_obj)
     db.commit()
@@ -73,7 +77,7 @@ def create_station_data(db: Session, data: schemas.StationDataCreate):
     return db_obj
 
 def get_station_data(db: Session, skip: int = 0, limit: int = 100, 
-                   station_id: int = None, start_time: datetime = None, 
+                   station_id: str = None, start_time: datetime = None,  # Cambiado a str
                    end_time: datetime = None):
     query = db.query(models.StationData)
     
@@ -91,7 +95,7 @@ def get_station_data(db: Session, skip: int = 0, limit: int = 100,
 def get_station_data_by_id(db: Session, data_id: int):
     return db.query(models.StationData).filter(models.StationData.id == data_id).first()
 
-def get_latest_station_data(db: Session, station_id: int = None, limit: int = 10):
+def get_latest_station_data(db: Session, station_id: str = None, limit: int = 10):  # Cambiado a str
     query = db.query(models.StationData)
     
     if station_id:

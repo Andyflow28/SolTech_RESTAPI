@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-from .database import Base  # suponiendo que tienes un archivo database.py con la Base declarada
+from .database import Base
 
 
 class User(Base):
@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-    has_station = Column(Boolean, default=False, nullable=False)  # Nuevo campo
+    has_station = Column(Boolean, default=False, nullable=False)
 
     # Relación con UserStation
     stations = relationship("UserStation", back_populates="user")
@@ -21,8 +21,8 @@ class User(Base):
 class UserStation(Base):
     __tablename__ = "user_station"
     
-    station_id = Column(Integer, primary_key=True, index=True)
-    location = Column(String, nullable=False)  # Nuevo campo que sustituye a Region.location
+    station_id = Column(String, primary_key=True, index=True)  # Cambiado a String para hexadecimal
+    location = Column(String, nullable=False)
     
     # Foreign key con User
     user_id = Column(Integer, ForeignKey("user.user_id"), nullable=False)
@@ -36,13 +36,26 @@ class StationData(Base):
     __tablename__ = "station_data"
     
     id = Column(Integer, primary_key=True, index=True)
-    temperature = Column(Float, nullable=False)
-    pressure = Column(Float, nullable=False)
-    humidity = Column(Float, nullable=False)
     
-    # Foreign key con UserStation
-    station_id = Column(Integer, ForeignKey("user_station.station_id"), nullable=False)
+    # Datos del sensor AHT20
+    temperature_aht20 = Column(Float, nullable=True)
+    humidity_aht20 = Column(Float, nullable=True)
+    
+    # Datos del sensor BMP280
+    temperature_bmp280 = Column(Float, nullable=True)
+    pressure_bmp280 = Column(Float, nullable=True)
+    
+    # Datos del sensor MQ-2
+    voltage_mq2 = Column(Float, nullable=True)
+    digital_mq2 = Column(Boolean, nullable=True)
+    
+    # Datos del sensor MQ-135
+    voltage_mq135 = Column(Float, nullable=True)
+    digital_mq135 = Column(Boolean, nullable=True)
+    
+    # Foreign key con UserStation (cambiado a String)
+    station_id = Column(String, ForeignKey("user_station.station_id"), nullable=False)
     station = relationship("UserStation", back_populates="station_data")
     
-    # Use a timezone-aware datetime for the default timestamp
+    # Timestamp
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

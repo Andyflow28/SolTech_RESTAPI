@@ -8,10 +8,10 @@ from pydantic import BaseModel
 from . import models, schemas, crud
 from .database import SessionLocal, engine, get_db
 from .config import settings
-from .security import create_access_token, verify_password, verify_api_key, get_current_user, authenticate_user
+from .security import create_access_token, verify_password, verify_api_key
 
-from .database import recreate_tables
-recreate_tables()
+# Crear tablas solo si no existen
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="ESP32 Sensor API",
@@ -28,13 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Esquema para login de usuarios
 class UserLogin(BaseModel):

@@ -23,38 +23,35 @@ class UserStationBase(BaseModel):
 
 class UserStationCreate(UserStationBase):
     user_id: int
-    station_id: str = Field(..., pattern="^[0-9a-fA-F]+$", description="Station ID must be a valid hexadecimal string")  # Cambiado a str
+    station_id: str = Field(..., pattern="^[0-9a-fA-F]+$", description="Station ID must be a valid hexadecimal string")
 
 class UserStation(UserStationBase):
-    station_id: str  # Cambiado a str
+    station_id: str
     user_id: int
     
     model_config = ConfigDict(from_attributes=True)
 
-# StationData schemas
+# StationData schemas (NUEVA ESTRUCTURA)
 class StationDataBase(BaseModel):
-    # Datos del sensor AHT20
-    temperature_aht20: Optional[float] = Field(None, ge=-40, le=80, description="Temperature from AHT20 must be between -40 and 80°C")
-    humidity_aht20: Optional[float] = Field(None, ge=0, le=100, description="Humidity from AHT20 must be between 0 and 100%")
+    # Datos de ambiente
+    temperatura: Optional[float] = Field(None, ge=-40, le=80, description="Temperatura en °C")
+    humedad: Optional[float] = Field(None, ge=0, le=100, description="Humedad en %")
+    presion: Optional[float] = Field(None, ge=300, le=1100, description="Presión en hPa")
     
-    # Datos del sensor BMP280
-    temperature_bmp280: Optional[float] = Field(None, ge=-40, le=80, description="Temperature from BMP280 must be between -40 and 80°C")
-    pressure_bmp280: Optional[float] = Field(None, ge=300, le=1100, description="Pressure from BMP280 in hPa")
+    # Datos de gas
+    gas_detectado: Optional[bool] = Field(None, description="True si se detectó gas (MQ-135)")
+    voltaje_mq135: Optional[float] = Field(None, ge=0, le=5, description="Voltaje del sensor MQ-135")
     
-    # Datos del sensor MQ-2
-    voltage_mq2: Optional[float] = Field(None, ge=0, le=5, description="Voltage from MQ-2 between 0 and 5V")
-    digital_mq2: Optional[bool] = Field(None, description="Digital output from MQ-2: True if gas detected")
-    
-    # Datos del sensor MQ-135
-    voltage_mq135: Optional[float] = Field(None, ge=0, le=5, description="Voltage from MQ-135 between 0 and 5V")
-    digital_mq135: Optional[bool] = Field(None, description="Digital output from MQ-135: True if gas detected")
+    # Datos del UV
+    indice_uv: Optional[float] = Field(None, ge=0, le=15, description="Valor del índice UV")
+    nivel_uv: Optional[str] = Field(None, description="Descripción del nivel UV (e.g., 'Bajo', 'Alto')")
 
 class StationDataCreate(StationDataBase):
-    station_id: str = Field(..., pattern="^[0-9a-fA-F]+$", description="Station ID must be a valid hexadecimal string")  # Cambiado a str
+    station_id: str = Field(..., pattern="^[0-9a-fA-F]+$", description="Station ID must be a valid hexadecimal string")
 
 class StationData(StationDataBase):
     id: int
-    station_id: str  # Cambiado a str
+    station_id: str
     timestamp: datetime
     
     model_config = ConfigDict(from_attributes=True)
